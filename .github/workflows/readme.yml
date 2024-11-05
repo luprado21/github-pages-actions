@@ -40,6 +40,8 @@ jobs:
           "
       - name: Push
         run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
           git add README.md
           git commit -m "Update README.md from index.html"
           git push
