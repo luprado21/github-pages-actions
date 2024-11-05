@@ -1,0 +1,59 @@
+name: Update Page Title and Lint HTML
+
+on:
+  workflow_dispatch:  # Permite disparo manual com entrada de usuário
+    inputs:
+      page_title:
+        description: 'New page title'
+        required: true
+        default: 'New Page Title'
+
+permissions:
+  contents: write
+
+jobs:
+  update-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          npm install fs jsdom
+
+      - name: Update title in index.html
+        run: |
+          node -e "
+            const fs = require('fs');
+            const { JSDOM } = require('jsdom');
+            const title = process.env.INPUT_PAGE_TITLE;  // Lê o título passado como input
+            const htmlPath = 'docs/index.html';
+            // Carrega index.html
+            const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
+            const dom = new JSDOM(htmlContent);
+            // Atualiza o título da página
+            dom.window.document.querySelector('title').textContent = title;
+            // Salva a alteração
+            fs.writeFileSync(htmlPath, dom.serialize());
+          "
+        env:
+          INPUT_PAGE_TITLE: ${{ github.event.inputs.page_title }}
+
+      - name: Run HTML Linter
+        run: |
+          npm install -g htmlhint
+          htmlhint "docs/*.html"
+      
+      - name: Commit and Push changes
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+          git add docs/index.html
+          git commit -m "Update title in index.html"
+          git push
